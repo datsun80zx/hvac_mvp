@@ -32,7 +32,7 @@ SELECT
   co.efficiency_rating AS coil_afue,
   co.price         AS coil_price,
 
-  (f.price + c.price + co.price) AS total_price
+  CAST((f.price + c.price + co.price) AS DECIMAL) AS total_price
 FROM equipment AS f
   JOIN equipment AS c  ON c.equipment_type = 'outdoor_condenser'
   JOIN equipment AS co ON co.equipment_type = 'evaporator_coil'
@@ -40,7 +40,18 @@ WHERE
   f.equipment_type = 'furnace'
   AND f.equipment_width = $1
   AND co.equipment_width = $1
+  AND c.btu >= $2
+  AND c.btu <= $3
+  AND co.btu >= $2
+  AND co.btu <= $3
+ORDER BY total_price ASC
 `
+
+type FindCompatibleSystemsParams struct {
+	EquipmentWidth sql.NullString
+	Btu            sql.NullInt32
+	Btu_2          sql.NullInt32
+}
 
 type FindCompatibleSystemsRow struct {
 	FurnaceID             uuid.UUID
@@ -58,11 +69,11 @@ type FindCompatibleSystemsRow struct {
 	CoilBtu               sql.NullInt32
 	CoilAfue              sql.NullString
 	CoilPrice             sql.NullString
-	TotalPrice            int32
+	TotalPrice            string
 }
 
-func (q *Queries) FindCompatibleSystems(ctx context.Context, equipmentWidth sql.NullString) ([]FindCompatibleSystemsRow, error) {
-	rows, err := q.db.QueryContext(ctx, findCompatibleSystems, equipmentWidth)
+func (q *Queries) FindCompatibleSystems(ctx context.Context, arg FindCompatibleSystemsParams) ([]FindCompatibleSystemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, findCompatibleSystems, arg.EquipmentWidth, arg.Btu, arg.Btu_2)
 	if err != nil {
 		return nil, err
 	}
