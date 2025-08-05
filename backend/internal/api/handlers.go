@@ -37,8 +37,8 @@ func (h *Handler) CalculateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Calculate BTU range
 	// Rule: 400-600 sq ft per ton, 1 ton = 12,000 BTU
-	minBTU := (req.SquareFootage * 12000) / 600 // Most efficient
-	maxBTU := (req.SquareFootage * 12000) / 400 // Least efficient
+	minBTU := (req.SquareFootage / 600) * 12000 // Most efficient
+	maxBTU := (req.SquareFootage / 400) * 12000 // Least efficient
 
 	// Round to nearest 6,000 BTU (0.5 ton)
 	minBTU = ((minBTU + 5999) / 6000) * 6000

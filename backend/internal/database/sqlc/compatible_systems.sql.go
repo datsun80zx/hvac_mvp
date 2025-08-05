@@ -42,8 +42,7 @@ WHERE
   AND co.equipment_width = $1
   AND c.btu >= $2
   AND c.btu <= $3
-  AND co.btu >= $2
-  AND co.btu <= $3
+  AND co.btu = c.btu
 ORDER BY total_price ASC
 `
 
