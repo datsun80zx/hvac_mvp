@@ -114,27 +114,24 @@ func (h *Handler) SystemsHandler(w http.ResponseWriter, r *http.Request) {
 	// For MVP, we'll use a standard width - you can make this dynamic later
 	standardWidth := sql.NullString{String: "21", Valid: true}
 
-	// Based on your SQLC generated code, the params are positional
-	compatibleSystems, err := h.db.FindCompatibleSystems(r.Context(), standardWidth)
+	// Create the params struct with all three required parameters
+	params := db.FindCompatibleSystemsParams{
+		EquipmentWidth: standardWidth,
+		Btu:            sql.NullInt32{Int32: int32(minBTU), Valid: true},
+		Btu_2:          sql.NullInt32{Int32: int32(maxBTU), Valid: true},
+	}
+
+	// Call with the params struct
+	compatibleSystems, err := h.db.FindCompatibleSystems(r.Context(), params)
 
 	if err != nil {
 		http.Error(w, "Failed to find compatible systems", http.StatusInternalServerError)
 		return
 	}
 
-	// Filter results by BTU range
-	var filteredSystems []db.FindCompatibleSystemsRow
-	for _, cs := range compatibleSystems {
-		if cs.CondenserBtu.Valid &&
-			cs.CondenserBtu.Int32 >= int32(minBTU) &&
-			cs.CondenserBtu.Int32 <= int32(maxBTU) {
-			filteredSystems = append(filteredSystems, cs)
-		}
-	}
-
 	// Format response
-	systems := make([]System, len(filteredSystems))
-	for i, cs := range filteredSystems {
+	systems := make([]System, len(compatibleSystems))
+	for i, cs := range compatibleSystems {
 		// Get manufacturer and model info
 		furnaceModel := ""
 		if cs.FurnaceManufacturer.Valid {
@@ -154,6 +151,9 @@ func (h *Handler) SystemsHandler(w http.ResponseWriter, r *http.Request) {
 			coilModel = cs.CoilManufacturer.String + " Coil"
 		}
 
+		// Parse the total price from string to float64
+		totalPrice, _ := strconv.ParseFloat(cs.TotalPrice, 64)
+
 		systems[i] = System{
 			Furnace: EquipmentPiece{
 				Model:      furnaceModel,
@@ -169,7 +169,7 @@ func (h *Handler) SystemsHandler(w http.ResponseWriter, r *http.Request) {
 				Model: coilModel,
 				BTU:   int(cs.CoilBtu.Int32),
 			},
-			TotalPrice: float64(cs.TotalPrice), // TotalPrice is already int32 from SQLC
+			TotalPrice: totalPrice, // Now properly converted from string
 		}
 	}
 

@@ -21,7 +21,7 @@ func main() {
 	// Get database URL
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://user:password@localhost/hvac_db?sslmode=disable"
+		dbURL = "postgresql://postgres:postgres@localhost:5432/hvacmvp?sslmode=disable"
 	}
 
 	// Connect to database
